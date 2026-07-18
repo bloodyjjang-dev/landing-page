@@ -1,0 +1,791 @@
+// app.jsx — 마음요가필라테스 랜딩 페이지 (React 18 UMD + Babel Standalone)
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "palette": "calm",
+  "headlineWeight": 500,
+  "showSticky": true,
+  "showSubNav": true
+}/*EDITMODE-END*/;
+
+const PALETTES = {
+  calm: {
+    ivory:    "#FAF6F0",
+    pinkSoft: "#E7E1D3",
+    pink:     "#B98A55",
+    pinkDeep: "#8C6B3E",
+    sage:     "#5B6B52",
+    sageSoft: "#C9D2C0",
+    ink:      "#2B2A26",
+    muted:    "#7C7568"
+  },
+  dusk: {
+    ivory:    "#1E2420",
+    pinkSoft: "#2C332C",
+    pink:     "#C99A5B",
+    pinkDeep: "#E8B978",
+    sage:     "#8FA383",
+    sageSoft: "#3A453A",
+    ink:      "#F3EFE6",
+    muted:    "#A7A89C"
+  },
+  linen: {
+    ivory:    "#FFFFFF",
+    pinkSoft: "#F1EBDD",
+    pink:     "#A97C4F",
+    pinkDeep: "#7C5A36",
+    sage:     "#62725A",
+    sageSoft: "#D7DECE",
+    ink:      "#20201C",
+    muted:    "#84806F"
+  }
+};
+
+// TODO: 싱잉볼 상세(구매) 페이지가 준비되면 아래 URL을 교체하세요.
+const SINGING_BOWL_DETAIL_URL = "#singing-bowl-detail-url-placeholder";
+
+const { useState, useEffect } = React;
+const { useTweaks, TweaksPanel, TweakSection, TweakColor, TweakToggle, TweakSlider } = window;
+
+// ─────────────────────────────────────────────────────────────
+// SVG 컴포넌트
+// ─────────────────────────────────────────────────────────────
+
+function LotusMark({ size = 28, c }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <path d="M20 30 C20 30 10 24 10 15 C10 9 14 6 20 6 C26 6 30 9 30 15 C30 24 20 30 20 30Z" stroke={c.pink} strokeWidth="1.6" fill="none"/>
+      <path d="M20 30 C20 30 14 23 16 13 C17 8 20 6 20 6" stroke={c.sage} strokeWidth="1.2" fill="none" opacity="0.7"/>
+      <path d="M20 30 C20 30 26 23 24 13 C23 8 20 6 20 6" stroke={c.sage} strokeWidth="1.2" fill="none" opacity="0.7"/>
+      <line x1="6" y1="33" x2="34" y2="33" stroke={c.pink} strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function BreathIcon({ size = 32, c }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="20" r="13" stroke={c.sage} strokeWidth="1.6"/>
+      <circle cx="20" cy="20" r="6.5" stroke={c.pink} strokeWidth="1.6"/>
+      <path d="M20 4 V8 M20 32 V36 M4 20 H8 M32 20 H36" stroke={c.sage} strokeWidth="1.4" strokeLinecap="round" opacity="0.6"/>
+    </svg>
+  );
+}
+
+function CoreIcon({ size = 32, c }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <rect x="6" y="17" width="28" height="6" rx="3" stroke={c.sage} strokeWidth="1.6"/>
+      <circle cx="9" cy="20" r="4" fill={c.pinkSoft} stroke={c.pink} strokeWidth="1.4"/>
+      <circle cx="31" cy="20" r="4" fill={c.pinkSoft} stroke={c.pink} strokeWidth="1.4"/>
+    </svg>
+  );
+}
+
+function BowlIcon({ size = 32, c }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <path d="M6 20 C6 27 12 31 20 31 C28 31 34 27 34 20" stroke={c.pink} strokeWidth="1.8" strokeLinecap="round"/>
+      <ellipse cx="20" cy="20" rx="14" ry="3.4" stroke={c.sage} strokeWidth="1.4"/>
+      <path d="M20 8 Q24 12 20 16 Q16 12 20 8Z" fill={c.sageSoft} opacity="0.8"/>
+    </svg>
+  );
+}
+
+function CertIcon({ size = 32, c }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <circle cx="20" cy="15" r="9" stroke={c.pink} strokeWidth="1.6"/>
+      <path d="M14 22 L11 34 L20 29 L29 34 L26 22" stroke={c.sage} strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+      <path d="M16 15 L19 18 L25 11" stroke={c.pink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function LeafIcon({ size = 32, c }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+      <path d="M20 34 C20 34 9 28 9 16 C9 9 14 5 20 5 C26 5 31 9 31 16 C31 28 20 34 20 34Z" stroke={c.sage} strokeWidth="1.6" fill="none"/>
+      <line x1="20" y1="34" x2="20" y2="11" stroke={c.sage} strokeWidth="1.2" strokeLinecap="round" opacity="0.7"/>
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Nav
+// ─────────────────────────────────────────────────────────────
+
+function Nav({ c, tweaks }) {
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', fn);
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
+
+  return (
+    <nav className="nav" style={{ borderBottomColor: c.pinkSoft, boxShadow: scrolled ? '0 2px 16px rgba(0,0,0,0.06)' : 'none' }}>
+      <div className="container">
+        <div className="nav__inner">
+          <div className="nav__logo" style={{ color: c.ink }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <LotusMark size={22} c={c}/> 마음요가필라테스
+            </span>
+          </div>
+          {tweaks.showSubNav && (
+            <div className="nav__links">
+              {[['#program-yoga','요가'],['#program-pilates','필라테스'],['#program-singingbowl','싱잉볼'],['#faq','FAQ']].map(([href, label]) => (
+                <a key={href} href={href} style={{ color: c.ink }}>{label}</a>
+              ))}
+            </div>
+          )}
+          <div className="nav__cta-group">
+            <a href={SINGING_BOWL_DETAIL_URL} className="nav__cta-secondary btn-secondary" style={{ color: c.ink, borderColor: c.pinkSoft, padding: '10px 18px', fontSize: '0.85rem' }}>싱잉볼 구매</a>
+            <a href="#apply" className="btn-primary" style={{ background: c.pink, padding: '11px 20px', fontSize: '0.85rem' }}>상담 신청</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 01 Hero
+// ─────────────────────────────────────────────────────────────
+
+function Hero({ c, tweaks }) {
+  return (
+    <section className="hero" id="hero">
+      <div className="hero__bg" style={{ backgroundImage: 'url(images/hero-bg.jpg)' }}/>
+      <div className="hero__scrim"/>
+      <div className="container hero__inner">
+        <div className="hero__badge">MAUM YOGA · PILATES · SINGING BOWL</div>
+        <h1 className="hero__title" style={{ fontWeight: tweaks.headlineWeight }}>
+          움직임으로 풀고<br/>
+          소리로 멈추는, <em style={{ color: c.pink }}>마음의 회복</em>
+        </h1>
+        <p className="hero__sub">
+          요가·필라테스·싱잉볼을 한 공간에서 — 몸과 마음의 회복이 필요한 당신을 위한 통합 스튜디오입니다.
+        </p>
+        <div className="btn-row">
+          <a href="#apply" className="btn-primary" style={{ background: c.pink }}>상담 신청하기</a>
+          <a href="#program-singingbowl" className="btn-secondary" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }}>싱잉볼 둘러보기</a>
+        </div>
+        <div className="trust-row">
+          {[['KSA','싱잉볼 인증'],['지도자과정','요가·필라테스·싱잉볼'],['1:1','맞춤 케어']].map(([n, l]) => (
+            <div key={l} className="trust-item">
+              <strong>{n}</strong>
+              <span>{l}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="hero__scroll-cue">SCROLL</div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 02 PainPoints
+// ─────────────────────────────────────────────────────────────
+
+function PainPoints({ c }) {
+  const items = [
+    { num: '01', title: '운동을 해본 적이 없어 막막해요', desc: '체력·유연성에 상관없이 시작할 수 있도록, 그 날의 컨디션에 맞춘 동작부터 안내합니다.' },
+    { num: '02', title: '몸이 늘 굳어 있고 스트레스가 쌓여요', desc: '반복되는 만성 경직과 긴장을, 움직임과 호흡으로 천천히 풀어드립니다.' },
+    { num: '03', title: '잠들기 어렵고 마음이 잘 이완되지 않아요', desc: '싱잉볼의 소리 진동으로 신경계를 가라앉히고 깊은 이완을 경험합니다.' },
+    { num: '04', title: '혼자 수업 듣는 게 부담스러워요', desc: '소규모·1:1 맞춤 지도로, 처음이어도 부담 없이 적응할 수 있습니다.' },
+  ];
+  return (
+    <section className="section" id="pain-points" style={{ background: c.ivory }}>
+      <div className="container">
+        <div className="section-label">이런 분께 추천합니다</div>
+        <h2 className="section-title" style={{ color: c.ink }}>혹시 이런 고민을 하고 계신가요?</h2>
+        <div className="pain-grid">
+          {items.map(item => (
+            <div key={item.num} className="pain-card">
+              <div className="pain-card__num">{item.num}</div>
+              <h3 style={{ color: c.ink }}>{item.title}</h3>
+              <p>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 03 Differentiators
+// ─────────────────────────────────────────────────────────────
+
+function Differentiators({ c }) {
+  const items = [
+    {
+      icon: <BreathIcon size={30} c={c}/>,
+      title: '요가·필라테스·싱잉볼, 하나의 흐름',
+      desc: '한 공간에서 움직임(요가·필라테스)과 이완(싱잉볼 명상)을 모두 경험합니다. 따로 배우지 않아도 자연스럽게 회복의 루틴이 이어집니다.',
+    },
+    {
+      icon: <LeafIcon size={30} c={c}/>,
+      title: '몸과 마음의 회복을 최우선으로',
+      desc: '체형 교정이나 다이어트보다, 지금 내 몸과 마음의 상태를 먼저 살피는 수업을 지향합니다. 무리한 동작을 강요하지 않습니다.',
+    },
+    {
+      icon: <CertIcon size={30} c={c}/>,
+      title: '요가·필라테스·싱잉볼 지도자과정 운영',
+      desc: 'KSA 인증 등 전문 자격을 갖춘 지도자들이 직접 가르치고, 동시에 다음 지도자를 양성합니다. 전문성에 대한 검증된 기준입니다.',
+    },
+  ];
+  return (
+    <section className="section" id="differentiators" style={{ background: c.pinkSoft }}>
+      <div className="container">
+        <div className="section-label">왜 마음요가필라테스인가</div>
+        <h2 className="section-title" style={{ color: c.ink }}>세 가지 <em>차별점</em></h2>
+        <p className="section-sub">기술이 아니라 회복을 중심에 둔 운영 철학입니다.</p>
+        <div className="diff-grid">
+          {items.map((item, i) => (
+            <div key={i} className="diff-card" style={{ background: c.ivory, borderColor: c.pinkSoft }}>
+              <div className="diff-card__icon">{item.icon}</div>
+              <h3 style={{ color: c.ink }}>{item.title}</h3>
+              <p>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 04 Programs — 요가 → 필라테스 → 싱잉볼 (풀블리드 사진 패널)
+// ─────────────────────────────────────────────────────────────
+
+function ProgramPanel({ id, index, eyebrow, title, desc, tags, bg, c, children }) {
+  return (
+    <div className="program-panel" id={id}>
+      <div className="program-panel__bg" style={{ backgroundImage: `url(${bg})` }}/>
+      <div className="program-panel__scrim"/>
+      <div className="container program-panel__inner">
+        <div className="program-panel__index">{index} · {eyebrow}</div>
+        <h3 className="program-panel__title">{title}</h3>
+        <p className="program-panel__desc">{desc}</p>
+        <div className="program-panel__tags">
+          {tags.map(t => <span key={t} className="program-panel__tag">{t}</span>)}
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Programs({ c }) {
+  return (
+    <section className="section" id="programs" style={{ background: c.ivory, padding: '110px 0 0' }}>
+      <div className="container">
+        <div className="section-label">프로그램</div>
+        <h2 className="section-title" style={{ color: c.ink }}>요가 → 필라테스 → 싱잉볼</h2>
+        <p className="section-sub">움직임으로 시작해 소리로 마무리하는, 마음요가필라테스의 회복 순서입니다.</p>
+      </div>
+      <div className="programs-stack">
+        <ProgramPanel
+          id="program-yoga" index="01" eyebrow="YOGA" title="요가 — 몸의 중심을 다시 세우다"
+          desc="다양한 흐름의 요가 동작으로 굳은 몸을 풀고, 호흡을 따라 천천히 유연성과 근력의 균형을 찾습니다. 소규모 그룹 클래스로 서로의 속도를 존중하며 진행합니다."
+          tags={['그룹 클래스', '초보 가능', '스트레칭 · 유연성']}
+          bg="images/yoga-mat-class.jpg" c={c}
+        />
+        <ProgramPanel
+          id="program-pilates" index="02" eyebrow="PILATES" title="필라테스 — 정확한 움직임으로 회복하다"
+          desc="리포머와 캐딜락, 두 가지 전문 장비를 함께 활용해 코어와 자세를 교정합니다. 1:1 맞춤 지도로 통증 없는 움직임을 함께 만들어갑니다."
+          tags={['리포머 필라테스', '캐딜락 필라테스', '1:1 맞춤 지도', '자세 교정']}
+          bg="images/pilates-reformer.jpg" c={c}
+        />
+        <ProgramPanel
+          id="program-singingbowl" index="03" eyebrow="SINGING BOWL" title="싱잉볼 — 소리로 완전히 멈추다"
+          desc="티벳 싱잉볼의 진동과 소리로 신경계를 가라앉히고 깊은 이완에 닿습니다. KSA 인증 안내자가 직접 진행합니다."
+          tags={['KSA 인증 안내자', '사운드 힐링', '명상 클래스']}
+          bg="images/singingbowl-1.jpg" c={c}
+        >
+          <div className="btn-row" style={{ marginTop: 4 }}>
+            <a href="#apply" className="btn-primary" style={{ background: c.pink }}>싱잉볼 클래스 상담</a>
+            <a href={SINGING_BOWL_DETAIL_URL} className="btn-secondary" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }}>
+              싱잉볼 구매하러 가기 →
+            </a>
+          </div>
+        </ProgramPanel>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 05 HowItWorks
+// ─────────────────────────────────────────────────────────────
+
+function HowItWorks({ c }) {
+  const steps = [
+    { num: '01', title: '상담 신청', desc: '폼 작성 또는 전화로 지금 상태와 목표를 먼저 들려주세요.' },
+    { num: '02', title: '첫 방문 체험', desc: '스튜디오에서 직접 호흡·움직임을 경험하고 나에게 맞는 트랙을 함께 찾습니다.' },
+    { num: '03', title: '트랙 선택', desc: '요가·필라테스·싱잉볼 중 필요한 조합으로 나만의 회복 루틴을 구성합니다.' },
+    { num: '04', title: '꾸준한 회복', desc: '정기적인 수업과 1:1 피드백으로 몸과 마음의 변화를 함께 지켜봅니다.' },
+  ];
+  return (
+    <section className="section" id="how-it-works" style={{ background: c.sage }}>
+      <div className="container">
+        <div className="section-label" style={{ color: c.sageSoft }}>이용 방법</div>
+        <h2 className="section-title" style={{ color: '#fff' }}>
+          간단한 <em style={{ color: c.pinkSoft }}>4단계</em>로 시작합니다
+        </h2>
+        <p className="section-sub" style={{ color: 'rgba(255,255,255,0.75)' }}>상담부터 꾸준한 회복까지, 마음요가필라테스가 함께합니다.</p>
+        <div className="how-steps">
+          {steps.map((s, i) => (
+            <div key={i} className="how-step">
+              <span className="how-step__num">{s.num}</span>
+              <h3>{s.title}</h3>
+              <p>{s.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 52 }}>
+          <a href="#apply" className="btn-primary" style={{ background: '#fff', color: c.sage }}>지금 상담 신청하기</a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 06 About — 원장 프로필 + 스튜디오 공간
+// ─────────────────────────────────────────────────────────────
+
+function About({ c }) {
+  return (
+    <section className="section" id="about" style={{ background: c.ivory }}>
+      <div className="container">
+        <div className="about-inner">
+
+          <div className="about-photo-wrap">
+            <div className="about-photo" style={{ backgroundImage: 'url(images/singingbowl-2.png)' }}/>
+            <div className="about-photo-row">
+              <div className="about-photo-small" style={{ backgroundImage: 'url(images/about-small-2.jpg)' }}/>
+              <div className="about-photo-small" style={{ backgroundImage: 'url(images/about-small.jpg)' }}/>
+            </div>
+          </div>
+
+          <div>
+            <div className="section-label">마음요가필라테스 소개</div>
+            <h2 className="section-title" style={{ color: c.ink }}>
+              사람과 공간,<br/>
+              <em>믿을 수 있는</em> 회복의 기준
+            </h2>
+            <p style={{ color: c.muted, marginTop: 18, lineHeight: 1.85, fontSize: '0.95rem' }}>
+              마음요가필라테스는 KSA 인증 싱잉볼 안내자 장지영 원장과 요가·필라테스 전문 지도자들이 함께합니다. 회원의 몸과 마음 상태를 먼저 살피고, 그에 맞는 움직임과 이완을 함께 설계합니다.
+            </p>
+            <ul className="about-list">
+              <li>KSA(한국싱잉볼아카데미) 인증 싱잉볼 안내자 직접 지도</li>
+              <li>요가·필라테스·싱잉볼 지도자과정 운영 — 검증된 전문성</li>
+              <li>리포머 필라테스 등 전문 장비 완비</li>
+              <li>밝고 차분한 공간에서 진행하는 소규모·1:1 클래스</li>
+            </ul>
+            <div className="about-stats">
+              {[['KSA 인증','싱잉볼 안내자 자격'],['지도자과정','요가·필라테스·싱잉볼'],['1:1','맞춤 케어 진행']].map(([n, l]) => (
+                <div key={l} className="about-stat">
+                  <strong>{n}</strong>
+                  <span>{l}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 07 Testimonials
+// ─────────────────────────────────────────────────────────────
+
+function Testimonials({ c }) {
+  const reviews = [
+    { name: '김○○ 회원님', meta: '요가 · 3개월째', body: '운동을 한 번도 안 해본 몸치인데도 천천히 따라갈 수 있었어요. 끝나고 나면 몸이 가벼워지는 게 느껴집니다.' },
+    { name: '이○○ 회원님', meta: '리포머 필라테스', body: '1:1로 자세를 봐주셔서 허리 통증이 많이 줄었어요. 혼자였으면 절대 몰랐을 디테일을 잡아주십니다.' },
+    { name: '박○○ 회원님', meta: '싱잉볼 명상', body: '잠을 잘 못 자는 편인데, 싱잉볼 클래스 다녀온 날은 정말 깊게 잡니다. 소리가 몸에 닿는 느낌이 신기해요.' },
+    { name: '최○○ 회원님', meta: '요가 + 싱잉볼', body: '움직이고 나서 마지막에 싱잉볼 소리로 마무리하니 한 시간이 통째로 힐링이에요. 일주일 중 가장 기다려지는 시간입니다.' },
+  ];
+  return (
+    <section className="section" id="testimonials" style={{ background: c.pinkSoft }}>
+      <div className="container">
+        <div className="section-label">회원 후기</div>
+        <h2 className="section-title" style={{ color: c.ink }}>직접 경험한 <em>변화</em></h2>
+        <div className="testi-grid">
+          {reviews.map((r, i) => (
+            <div key={i} className="testi-card">
+              <div className="testi-stars">{'★★★★★'}</div>
+              <p className="testi-body">{r.body}</p>
+              <div className="testi-author">
+                <div className="testi-avatar"/>
+                <div>
+                  <div className="testi-author__name" style={{ color: c.ink }}>{r.name}</div>
+                  <div className="testi-author__meta">{r.meta}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 08 FAQ
+// ─────────────────────────────────────────────────────────────
+
+function FAQ({ c }) {
+  const [openIdx, setOpenIdx] = useState(null);
+  const items = [
+    { q: '운동을 전혀 해본 적이 없는데 괜찮을까요?', a: '네, 가능합니다. 요가·필라테스 모두 그 날의 체력과 컨디션에 맞춰 동작 강도를 조절해 드립니다. 처음이라면 1:1 상담 후 맞는 트랙을 안내해 드립니다.' },
+    { q: '싱잉볼 클래스만 따로 들을 수 있나요?', a: '네, 가능합니다. 요가·필라테스와 별도로 싱잉볼 명상 클래스만 신청하실 수 있으며, 지도자과정 문의도 함께 상담 가능합니다.' },
+    { q: '싱잉볼 구매는 어떻게 하나요?', a: '클래스에서 사용하는 싱잉볼은 상세페이지를 통해 별도로 구매하실 수 있습니다. 상단의 "싱잉볼 구매" 버튼을 통해 확인해 주세요.' },
+    { q: '환불 정책은 어떻게 되나요?', a: '수업 시작 전 환불 요청 시 전액 환불되며, 일부 진행된 경우 잔여 횟수에 비례해 환불해 드립니다. 자세한 사항은 상담 시 안내드립니다.' },
+    { q: '스튜디오는 어디에 있나요?', a: '정확한 위치와 주차 안내는 상담 신청 시 문자·카카오톡으로 안내드립니다.' },
+    { q: '지도자과정은 어떻게 신청하나요?', a: '요가·필라테스·싱잉볼 지도자과정은 별도 과정으로 운영됩니다. 상담 신청 폼에서 "지도자과정 문의"를 선택해 주세요.' },
+  ];
+  return (
+    <section className="section" id="faq" style={{ background: c.ivory }}>
+      <div className="container" style={{ maxWidth: 760 }}>
+        <div className="section-label">자주 묻는 질문</div>
+        <h2 className="section-title" style={{ color: c.ink }}>궁금한 점이 있으신가요?</h2>
+        <div className="faq-list">
+          {items.map((item, i) => (
+            <div key={i} className="faq-item" style={{ borderBottomColor: c.pinkSoft }}>
+              <button className="faq-btn" onClick={() => setOpenIdx(openIdx === i ? null : i)} style={{ color: c.ink }}>
+                <span>{item.q}</span>
+                <span className={`faq-icon${openIdx === i ? ' faq-icon--open' : ''}`}>+</span>
+              </button>
+              {openIdx === i && <div className="faq-answer">{item.a}</div>}
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 40, padding: '24px 26px', background: c.pinkSoft, borderRadius: 4, fontSize: '0.9rem', color: c.muted }}>
+          더 궁금한 점은 <strong style={{ color: c.pink }}>상담 신청</strong>을 통해 편하게 문의해 주세요.
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 09 Pricing — 가격 비공개, 상담 유도형 프로그램 안내
+// ─────────────────────────────────────────────────────────────
+
+function Pricing({ c }) {
+  const plans = [
+    {
+      name: '요가', desc: '그룹 클래스 · 스트레칭 · 유연성',
+      features: ['초보자도 가능한 흐름', '소규모 그룹 진행', '체험 클래스 운영'],
+    },
+    {
+      name: '필라테스', desc: '리포머 필라테스 · 1:1 맞춤',
+      features: ['전문 장비 기반 지도', '자세·체형 맞춤 교정', '1:1 또는 소그룹 선택'],
+    },
+    {
+      name: '싱잉볼', desc: '명상 클래스 · 지도자과정',
+      features: ['KSA 인증 안내자 진행', '사운드 힐링 명상', '지도자과정 별도 문의'],
+    },
+  ];
+  return (
+    <section className="section" id="pricing" style={{ background: c.ivory }}>
+      <div className="container">
+        <div className="section-label">프로그램 안내</div>
+        <h2 className="section-title" style={{ color: c.ink }}>나에게 맞는 <em>프로그램</em>을 찾아보세요</h2>
+        <p className="section-sub">정확한 일정과 비용은 상담을 통해 맞춤 안내해 드립니다.</p>
+        <div className="pricing-grid">
+          {plans.map((plan, i) => (
+            <div key={i} className="price-card">
+              <h3>{plan.name}</h3>
+              <p className="price-card__desc">{plan.desc}</p>
+              <div className="price-card__amount">상담 후 안내</div>
+              <ul className="price-card__features">
+                {plan.features.map((f, j) => <li key={j}>{f}</li>)}
+              </ul>
+              <a href="#apply" className="btn-primary"
+                style={{ background: c.pink, color: '#fff', marginTop: 24, display: 'block', textAlign: 'center' }}>상담 신청하기</a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 10 Apply
+// ─────────────────────────────────────────────────────────────
+
+function Apply({ c }) {
+  const [form, setForm] = useState({ name: '', phone: '', program: '', time: '', memo: '' });
+  const [errors, setErrors] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+
+  const set = (key, val) => {
+    setForm(f => ({ ...f, [key]: val }));
+    setErrors(e => ({ ...e, [key]: '' }));
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = '이름을 입력해주세요.';
+    if (!/^\d{9,11}$/.test(form.phone.replace(/-/g, ''))) e.phone = '올바른 연락처를 입력해주세요.';
+    if (!form.program) e.program = '관심 프로그램을 선택해주세요.';
+    if (!form.time) e.time = '희망 시간대를 선택해주세요.';
+    return e;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    setSubmitted(true);
+  };
+
+  if (submitted) {
+    return (
+      <section className="section" id="apply" style={{ background: c.pinkSoft }}>
+        <div className="container" style={{ maxWidth: 560, textAlign: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 4, padding: '64px 40px', boxShadow: '0 16px 50px rgba(0,0,0,0.06)' }}>
+            <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center' }}><LotusMark size={40} c={c}/></div>
+            <h3 style={{ fontFamily: 'Noto Serif KR, serif', fontSize: '1.4rem', marginBottom: 14, color: c.ink, fontWeight: 500 }}>상담 신청이 완료되었습니다</h3>
+            <p style={{ color: c.muted, fontSize: '0.95rem', lineHeight: 1.85 }}>
+              입력하신 연락처로 곧 안내 연락 드리겠습니다.<br/>
+              영업 시간 내 순서대로 응대해 드립니다.
+            </p>
+            <div style={{ marginTop: 30, padding: '20px 22px', background: c.pinkSoft, borderRadius: 4, fontSize: '0.9rem', color: c.muted }}>
+              싱잉볼 구매는 <a href={SINGING_BOWL_DETAIL_URL} style={{ color: c.pink, fontWeight: 500 }}>여기에서</a> 바로 확인하실 수 있습니다.
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="section" id="apply" style={{ background: c.pinkSoft }}>
+      <div className="container">
+        <div className="apply-inner">
+
+          <div>
+            <div className="section-label">상담 신청</div>
+            <h2 className="section-title" style={{ color: c.ink }}>지금 바로<br/><em>상담 신청</em>하세요</h2>
+            <p style={{ color: c.muted, marginTop: 18, lineHeight: 1.8, fontSize: '0.95rem' }}>
+              폼 작성 후 빠르게 연락드립니다.<br/>
+              지도자과정 문의도 함께 가능합니다.
+            </p>
+            <div style={{ marginTop: 36, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {['전화 상담 — 0507-1438-6782', '평일 09:00–21:00 / 토 09:00–15:00'].map(text => (
+                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: '0.9rem', color: c.muted }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.pink, display: 'inline-block', flexShrink: 0 }}/>{text}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <form className="apply-form" onSubmit={handleSubmit} noValidate>
+              <div className="form-group">
+                <label className="form-label" style={{ color: c.ink }}>이름 *</label>
+                <input className="form-input" type="text" placeholder="홍길동"
+                  value={form.name} onChange={e => set('name', e.target.value)}
+                  style={{ borderColor: errors.name ? '#b3493a' : c.pinkSoft }}/>
+                {errors.name && <div className="form-error">{errors.name}</div>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" style={{ color: c.ink }}>연락처 *</label>
+                <input className="form-input" type="tel" placeholder="010-0000-0000"
+                  value={form.phone} onChange={e => set('phone', e.target.value)}
+                  style={{ borderColor: errors.phone ? '#b3493a' : c.pinkSoft }}/>
+                {errors.phone && <div className="form-error">{errors.phone}</div>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" style={{ color: c.ink }}>관심 프로그램 *</label>
+                <select className="form-select" value={form.program} onChange={e => set('program', e.target.value)}
+                  style={{ borderColor: errors.program ? '#b3493a' : c.pinkSoft }}>
+                  <option value="">프로그램을 선택하세요</option>
+                  <option value="yoga">요가</option>
+                  <option value="pilates">필라테스</option>
+                  <option value="singingbowl">싱잉볼 명상</option>
+                  <option value="instructor-course">지도자과정 문의</option>
+                  <option value="consult">상담 후 결정</option>
+                </select>
+                {errors.program && <div className="form-error">{errors.program}</div>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" style={{ color: c.ink }}>희망 시간대 *</label>
+                <div className="form-radio-group">
+                  {['오전 (09:00–12:00)', '오후 (13:00–18:00)', '저녁 (18:00–21:00)'].map(t => (
+                    <label key={t} className="form-radio">
+                      <input type="radio" name="time" value={t} checked={form.time === t}
+                        onChange={e => set('time', e.target.value)}/>
+                      {t}
+                    </label>
+                  ))}
+                </div>
+                {errors.time && <div className="form-error">{errors.time}</div>}
+              </div>
+              <div className="form-group">
+                <label className="form-label" style={{ color: c.ink }}>메모 (선택)</label>
+                <textarea className="form-textarea" rows={3}
+                  placeholder="현재 몸 상태, 궁금한 점 등을 자유롭게 적어주세요."
+                  value={form.memo} onChange={e => set('memo', e.target.value)}
+                  style={{ borderColor: c.pinkSoft, resize: 'vertical' }}/>
+              </div>
+              <button type="submit" className="form-submit">상담 신청하기</button>
+              <p className="form-privacy">
+                입력하신 개인정보는 상담 목적으로만 사용되며,<br/>
+                상담 완료 후 30일 이내 파기합니다.
+              </p>
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// 11 Footer
+// ─────────────────────────────────────────────────────────────
+
+function Footer({ c }) {
+  return (
+    <footer className="footer" id="footer" style={{ background: c.ink, color: c.ivory }}>
+      <div className="container">
+        <div className="footer__inner">
+          <div>
+            <div className="footer__brand" style={{ color: '#fff' }}>마음요가필라테스</div>
+            <p className="footer__desc" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              요가·필라테스·싱잉볼 통합 스튜디오<br/>
+              움직임으로 풀고 소리로 멈추는, 마음의 회복.
+            </p>
+            <div style={{ marginTop: 22, fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.95 }}>
+              <div>주소 — 전북 군산시 궁포안2길 27 506호</div>
+              <div>전화 — 0507-1438-6782</div>
+              <div>블로그 — <a href="https://blog.naver.com/maum_yp" style={{ color: 'inherit' }}>https://blog.naver.com/maum_yp</a></div>
+            </div>
+          </div>
+          <div>
+            <div className="footer__nav-title" style={{ color: 'rgba(255,255,255,0.45)' }}>프로그램</div>
+            <ul className="footer__nav-list">
+              {[['#program-yoga','요가'],['#program-pilates','필라테스'],['#program-singingbowl','싱잉볼'],[SINGING_BOWL_DETAIL_URL,'싱잉볼 구매']].map(([href, label]) => (
+                <li key={label}><a href={href} style={{ color: 'rgba(255,255,255,0.7)' }}>{label}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <div className="footer__nav-title" style={{ color: 'rgba(255,255,255,0.45)' }}>정보</div>
+            <ul className="footer__nav-list">
+              {[['#about','소개'],['#testimonials','회원 후기'],['#faq','FAQ'],['#apply','상담 신청']].map(([href, label]) => (
+                <li key={label}><a href={href} style={{ color: 'rgba(255,255,255,0.7)' }}>{label}</a></li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="footer__bottom" style={{ borderTopColor: 'rgba(255,255,255,0.1)' }}>
+          <div className="footer__copy">© 2026 마음요가필라테스. All rights reserved.</div>
+          <div className="footer__biz">사업자 등록번호: [000-00-00000] · 대표: 장지영</div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Sticky CTA
+// ─────────────────────────────────────────────────────────────
+
+function StickyCTA({ c, show }) {
+  return (
+    <div className={`sticky-cta${show ? ' sticky-cta--visible' : ''}`}
+      style={{ background: c.ink, borderTopColor: c.pink, color: c.ivory }}>
+      <div className="sticky-cta__text">
+        <strong>마음요가필라테스</strong> — 요가·필라테스·싱잉볼
+      </div>
+      <div className="sticky-cta__actions">
+        <a href={SINGING_BOWL_DETAIL_URL} className="btn-secondary" style={{ color: c.ivory, borderColor: 'rgba(255,255,255,0.4)', padding: '9px 18px', fontSize: '0.82rem' }}>싱잉볼 구매</a>
+        <a href="#apply" className="btn-primary" style={{ background: c.pink, padding: '10px 18px', fontSize: '0.875rem' }}>상담 신청</a>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// App (root)
+// ─────────────────────────────────────────────────────────────
+
+function App() {
+  const [tweaks, setTweaks] = useTweaks(TWEAK_DEFAULTS);
+  const [showSticky, setShowSticky] = useState(false);
+
+  const c = PALETTES[tweaks.palette] || PALETTES.calm;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    Object.entries(c).forEach(([key, val]) => {
+      root.style.setProperty(`--c-${key}`, val);
+    });
+  }, [tweaks.palette]);
+
+  useEffect(() => {
+    const fn = () => setShowSticky(window.scrollY > 600);
+    window.addEventListener('scroll', fn);
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
+
+  return (
+    <div>
+      <Nav c={c} tweaks={tweaks}/>
+      <Hero c={c} tweaks={tweaks}/>
+      <PainPoints c={c}/>
+      <Differentiators c={c}/>
+      <Programs c={c}/>
+      <HowItWorks c={c}/>
+      <About c={c}/>
+      <Testimonials c={c}/>
+      <FAQ c={c}/>
+      <Pricing c={c}/>
+      <Apply c={c}/>
+      <Footer c={c}/>
+      {tweaks.showSticky && <StickyCTA c={c} show={showSticky}/>}
+      <TweaksPanel tweaks={tweaks}>
+        <TweakSection label="컬러 팔레트">
+          <TweakColor
+            value={tweaks.palette}
+            options={[
+              { key: 'calm',  label: '캄 (세이지+크림)',   preview: '#5B6B52' },
+              { key: 'dusk',  label: '더스크 (다크+앰버)',  preview: '#1E2420' },
+              { key: 'linen', label: '리넨 (화이트+우드)',  preview: '#A97C4F' },
+            ]}
+            onChange={v => setTweaks(t => ({ ...t, palette: v }))}
+          />
+        </TweakSection>
+        <TweakSection label="헤드라인">
+          <TweakSlider
+            label="굵기"
+            value={tweaks.headlineWeight}
+            min={400} max={900} step={100}
+            onChange={v => setTweaks(t => ({ ...t, headlineWeight: v }))}
+          />
+        </TweakSection>
+        <TweakSection label="UI 옵션">
+          <TweakToggle label="Sticky CTA 표시" value={tweaks.showSticky}
+            onChange={v => setTweaks(t => ({ ...t, showSticky: v }))}/>
+          <TweakToggle label="서브 네비 표시" value={tweaks.showSubNav}
+            onChange={v => setTweaks(t => ({ ...t, showSubNav: v }))}/>
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
