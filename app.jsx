@@ -1,5 +1,5 @@
 /* ============================================================
-   블크업 13기 — 단일 페이지 랜딩
+   블크업 14기 — 단일 페이지 랜딩
    4주 만에 수익화 블로그
    ============================================================ */
 
@@ -735,7 +735,7 @@ function Tweaks({ t, setT }) {
   const activePalette = paletteOpts[paletteKey.indexOf(t.palette)] || paletteOpts[0];
 
   return (
-    <window.TweaksPanel open={open} onClose={() => setOpen(false)} title="Tweaks · 블크업 13기">
+    <window.TweaksPanel open={open} onClose={() => setOpen(false)} title="Tweaks · 블크업 14기">
       <window.TweakSection title="팔레트">
         <window.TweakColor
           label="컬러 무드"

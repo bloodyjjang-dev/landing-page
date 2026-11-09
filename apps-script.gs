@@ -1,5 +1,5 @@
 /*════════════════════════════════════════════════════════════════
-  블크업 13기 — 상담 신청 수신용 Google Apps Script
+  블크업 14기 — 상담 신청 수신용 Google Apps Script
   ──────────────────────────────────────────────────────────────
   ▶ 하는 일
     1) 랜딩 신청폼에서 보낸 데이터를 구글시트에 한 줄씩 자동 기록
@@ -8,7 +8,7 @@
   ▶ 설치 방법 (10분)
     ── A. 구글시트 만들기 ──────────────────────────
     1. https://sheets.google.com 에서 새 시트 생성
-       (시트 이름 예: "블크업 13기 상담신청")
+       (시트 이름 예: "블크업 14기 상담신청")
     2. 첫 번째 탭 이름을 "상담신청" 으로 변경 (선택사항, 아래 SHEET_NAME과 일치시키면 됨)
 
     ── B. Apps Script 붙여넣기 ─────────────────────
@@ -45,7 +45,7 @@
 const CONFIG = {
   SHEET_NAME: "상담신청",                 // 기록할 시트 탭 이름
   NOTIFY_EMAIL: "yourname@naver.com",      // ← 알림 받을 네이버 메일로 변경
-  MAIL_SUBJECT: "[블크업 13기] 새 상담 신청이 도착했습니다",
+  MAIL_SUBJECT: "[블크업 14기] 새 상담 신청이 도착했습니다",
 };
 
 // 상담 상태 코드 → 한글 라벨
@@ -119,7 +119,7 @@ function appendRow(data) {
     data.phone || "",
     statusLabel,
     data.time || "",
-    data.page || "블크업 13기",
+    data.page || "블크업 14기",
   ]);
 }
 
@@ -131,13 +131,13 @@ function sendNotifyMail(data) {
   const statusLabel = STATUS_LABEL[data.status] || data.status || "-";
 
   const body =
-    "블크업 13기 상담 신청이 새로 들어왔습니다.\n\n" +
+    "블크업 14기 상담 신청이 새로 들어왔습니다.\n\n" +
     "■ 접수일시 : " + now + "\n" +
     "■ 이름     : " + (data.name || "-") + "\n" +
     "■ 연락처   : " + (data.phone || "-") + "\n" +
     "■ 현재상태 : " + statusLabel + "\n" +
     "■ 시간대   : " + (data.time || "-") + "\n" +
-    "■ 페이지   : " + (data.page || "블크업 13기") + "\n\n" +
+    "■ 페이지   : " + (data.page || "블크업 14기") + "\n\n" +
     "— 구글시트에 자동 기록되었습니다.";
 
   MailApp.sendEmail({
